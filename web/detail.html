@@ -1,0 +1,666 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>作品详情</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    .detail-page {
+      width: min(1080px, 92vw);
+      margin: 0 auto;
+      padding: 34px 0 64px;
+    }
+
+    .detail-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .back-link {
+      display: inline-block;
+      text-decoration: none;
+      color: var(--accent);
+      border: 1px solid rgba(255, 232, 199, 0.3);
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: rgba(255, 232, 199, 0.08);
+    }
+
+    .status-chip {
+      padding: 6px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      border: 1px solid rgba(255, 232, 199, 0.3);
+      background: rgba(255, 232, 199, 0.11);
+    }
+
+    .status-chip.completed {
+      background: rgba(178, 255, 207, 0.12);
+      border-color: rgba(178, 255, 207, 0.4);
+    }
+
+    .hero-card {
+      padding: 26px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 236, 213, 0.18);
+      background:
+        radial-gradient(circle at 12% 10%, rgba(255, 217, 162, 0.12), transparent 32%),
+        linear-gradient(160deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+      box-shadow: 0 18px 28px rgba(0, 0, 0, 0.34);
+      margin-bottom: 18px;
+    }
+
+    .hero-card h1 {
+      margin: 0 0 10px;
+      font-size: clamp(30px, 4.2vw, 44px);
+      line-height: 1.15;
+    }
+
+    .meta-line {
+      margin: 0;
+      color: var(--text-subtle);
+      font-size: 15px;
+    }
+
+    .detail-stack {
+      display: grid;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .row-split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      align-items: start;
+    }
+
+    .card {
+      padding: 20px;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 236, 213, 0.18);
+      background: rgba(255, 255, 255, 0.05);
+      box-shadow: 0 10px 22px rgba(0, 0, 0, 0.25);
+    }
+
+    .card h2 {
+      margin: 0 0 10px;
+      font-size: 20px;
+      color: var(--accent);
+    }
+
+    .card p {
+      margin: 0;
+      color: rgba(250, 238, 225, 0.88);
+      line-height: 1.7;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 14px;
+      cursor: pointer;
+      color: #f8efe4;
+      transition: transform 180ms ease, filter 180ms ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    .btn-continue {
+      background: linear-gradient(35deg, #1a4f5f, #2e7585);
+      border: 1px solid rgba(132, 214, 211, 0.35);
+    }
+
+    .btn-complete {
+      background: linear-gradient(35deg, #72523a, #a47046);
+      border: 1px solid rgba(255, 225, 187, 0.35);
+    }
+
+    .btn-export {
+      background: linear-gradient(35deg, #365e3b, #4e8757);
+      border: 1px solid rgba(191, 248, 192, 0.35);
+    }
+
+    .fulltext-box {
+      min-height: 420px;
+      max-height: 68vh;
+      overflow: auto;
+      padding-right: 8px;
+    }
+
+    .fulltext-box::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .fulltext-box::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: rgba(255, 232, 199, 0.3);
+    }
+
+    .summary-list {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 8px;
+      color: rgba(250, 238, 225, 0.88);
+      line-height: 1.6;
+    }
+
+    .equal-height-panel {
+      height: 300px;
+      overflow: auto;
+      padding-right: 8px;
+    }
+
+    .equal-height-panel::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .equal-height-panel::-webkit-scrollbar-thumb {
+      border-radius: 999px;
+      background: rgba(255, 232, 199, 0.28);
+    }
+
+    .character-list {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      display: grid;
+      gap: 10px;
+    }
+
+    .character-item {
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 236, 213, 0.14);
+    }
+
+    .character-name {
+      margin: 0 0 6px;
+      font-weight: 700;
+      color: #f5d4a3;
+      font-size: 16px;
+    }
+
+    .character-profile {
+      margin: 0;
+      line-height: 1.7;
+      color: rgba(250, 238, 225, 0.88);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .chapter-block {
+      margin-bottom: 16px;
+    }
+
+    .chapter-title {
+      margin: 0 0 8px;
+      font-size: 18px;
+      font-weight: 700;
+      color: #f5d4a3;
+    }
+
+    .chapter-paragraph {
+      margin: 0 0 8px;
+      line-height: 1.8;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.58);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      padding: 20px;
+    }
+
+    .overlay.show {
+      display: flex;
+    }
+
+    .modal {
+      width: min(520px, 94vw);
+      border-radius: 14px;
+      border: 1px solid rgba(255, 236, 213, 0.22);
+      background: linear-gradient(170deg, #252019, #171917);
+      box-shadow: 0 20px 34px rgba(0, 0, 0, 0.45);
+      padding: 20px;
+    }
+
+    .modal h3 {
+      margin: 0 0 10px;
+      font-size: 24px;
+      color: var(--accent);
+    }
+
+    .modal p {
+      margin: 0;
+      color: var(--text-subtle);
+      line-height: 1.7;
+    }
+
+    .modal-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 18px;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .confetti-layer {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 25;
+    }
+
+    .confetti {
+      position: absolute;
+      top: -12px;
+      width: 10px;
+      height: 16px;
+      opacity: 0.95;
+      animation: confetti-fall 2600ms linear forwards;
+    }
+
+    @keyframes confetti-fall {
+      to {
+        transform: translateY(110vh) rotate(620deg);
+        opacity: 0.2;
+      }
+    }
+
+    .toast {
+      position: fixed;
+      left: 50%;
+      bottom: 26px;
+      transform: translateX(-50%);
+      background: rgba(20, 22, 20, 0.88);
+      color: #f8efe4;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 232, 199, 0.28);
+      display: none;
+      z-index: 40;
+    }
+
+    .toast.show {
+      display: block;
+    }
+
+    @media (max-width: 940px) {
+      .row-split {
+        grid-template-columns: 1fr;
+      }
+
+      .fulltext-box {
+        max-height: none;
+      }
+
+      .equal-height-panel {
+        height: 240px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="detail-page">
+    <div class="detail-top">
+      <a class="back-link" href="/">返回书架</a>
+      <span id="status-chip" class="status-chip">加载中...</span>
+    </div>
+
+    <section class="hero-card">
+      <h1 id="novel-title">加载中...</h1>
+      <p class="meta-line" id="novel-style">文风：--</p>
+      <div class="action-row">
+        <button id="export-btn" class="btn btn-export" type="button">导出到本地 output</button>
+      </div>
+      <div class="action-row" id="action-row" style="display:none;">
+        <button id="continue-btn" class="btn btn-continue" type="button">续写</button>
+        <button id="complete-btn" class="btn btn-complete" type="button">确定完结</button>
+      </div>
+    </section>
+
+    <section class="detail-stack">
+      <article class="card">
+        <h2>文章简介</h2>
+        <p id="novel-intro">--</p>
+      </article>
+
+      <div class="row-split">
+        <article class="card">
+          <h2>章节摘要</h2>
+          <div class="equal-height-panel">
+            <ol id="chapter-summaries" class="summary-list"></ol>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2>人物设定</h2>
+          <div class="equal-height-panel">
+            <ul id="character-list" class="character-list"></ul>
+          </div>
+        </article>
+      </div>
+
+      <article class="card">
+        <h2>小说全文</h2>
+        <div id="full-text" class="fulltext-box">--</div>
+      </article>
+    </section>
+  </main>
+
+  <div id="confirm-overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="modal">
+      <h3 id="confirm-title">确认完结这部小说？</h3>
+      <p>确认后将标记为“已完结”。仍可查看内容，但书架将显示完结状态。这个操作可以在数据库中修改回来。</p>
+      <div class="modal-actions">
+        <button id="cancel-complete-btn" class="btn btn-secondary" type="button">再想想</button>
+        <button id="confirm-complete-btn" class="btn btn-complete" type="button">确认完结</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confetti-layer" class="confetti-layer"></div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    function resolveNovelId() {
+      const pathMatch = window.location.pathname.match(/^\/detail\/(\d+)$/);
+      if (pathMatch && pathMatch[1]) {
+        return Number(pathMatch[1]);
+      }
+      return Number(params.get("novel_id"));
+    }
+    const novelId = resolveNovelId();
+
+    const titleEl = document.getElementById("novel-title");
+    const styleEl = document.getElementById("novel-style");
+    const introEl = document.getElementById("novel-intro");
+    const fullTextEl = document.getElementById("full-text");
+    const summariesEl = document.getElementById("chapter-summaries");
+    const characterListEl = document.getElementById("character-list");
+    const statusChip = document.getElementById("status-chip");
+    const actionRow = document.getElementById("action-row");
+
+    const continueBtn = document.getElementById("continue-btn");
+    const completeBtn = document.getElementById("complete-btn");
+    const exportBtn = document.getElementById("export-btn");
+    const confirmOverlay = document.getElementById("confirm-overlay");
+    const cancelCompleteBtn = document.getElementById("cancel-complete-btn");
+    const confirmCompleteBtn = document.getElementById("confirm-complete-btn");
+
+    const confettiLayer = document.getElementById("confetti-layer");
+    const toast = document.getElementById("toast");
+
+    function showToast(text) {
+      toast.textContent = text;
+      toast.classList.add("show");
+      window.setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    function setStatus(isCompleted) {
+      statusChip.textContent = isCompleted ? "已完结" : "连载中";
+      statusChip.classList.toggle("completed", isCompleted);
+      actionRow.style.display = isCompleted ? "none" : "flex";
+    }
+
+    function playCelebration() {
+      const colors = ["#ffd18a", "#9be7d8", "#ff8f7f", "#d6ff9a", "#fff2a8"];
+      const count = 90;
+      for (let i = 0; i < count; i += 1) {
+        const confetti = document.createElement("span");
+        confetti.className = "confetti";
+        confetti.style.left = `${Math.random() * 100}%`;
+        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.transform = `translateY(-10px) rotate(${Math.random() * 360}deg)`;
+        confetti.style.animationDuration = `${2100 + Math.random() * 1200}ms`;
+        confetti.style.animationDelay = `${Math.random() * 240}ms`;
+        confettiLayer.appendChild(confetti);
+        window.setTimeout(() => confetti.remove(), 3600);
+      }
+    }
+
+    function fillChapterSummaries(chapters) {
+      summariesEl.innerHTML = "";
+      if (!Array.isArray(chapters) || chapters.length === 0) {
+        summariesEl.innerHTML = "<li>暂无章节摘要</li>";
+        return;
+      }
+
+      chapters.forEach((chapter) => {
+        const li = document.createElement("li");
+        const chapterTitle = chapter.chapter_title || chapter.title || "";
+        const summary = chapter.chapter_summary || "暂无摘要";
+        const heading = chapterTitle ? `第${chapter.chapter_id}章｜${chapterTitle}` : `第${chapter.chapter_id}章`;
+        li.textContent = `${heading}（${chapter.word_count}字）：${summary}`;
+        summariesEl.appendChild(li);
+      });
+    }
+
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function fillCharacters(characters) {
+      characterListEl.innerHTML = "";
+      if (!Array.isArray(characters) || characters.length === 0) {
+        characterListEl.innerHTML = "<li class=\"character-item\">暂无人物设定</li>";
+        return;
+      }
+
+      characters.forEach((character) => {
+        const name = character.character_name || `角色 #${character.character_id ?? ""}`;
+        const profile = character.profile_detail || "暂无设定";
+        const li = document.createElement("li");
+        li.className = "character-item";
+        li.innerHTML = `
+          <p class="character-name">${escapeHtml(name)}</p>
+          <p class="character-profile">${escapeHtml(profile)}</p>
+        `;
+        characterListEl.appendChild(li);
+      });
+    }
+
+    function renderFullTextByChapters(chapters) {
+      if (!Array.isArray(chapters) || chapters.length === 0) {
+        fullTextEl.innerHTML = "暂无全文";
+        return;
+      }
+
+      const blocks = chapters.map((chapter) => {
+        const chapterId = chapter.chapter_id;
+        const chapterTitle = String(chapter.chapter_title || chapter.title || "").trim();
+        const rawText = String(chapter.chapter_full_text || "").trim();
+        const paragraphs = rawText
+          ? rawText.split(/\n+/).map((p) => p.trim()).filter(Boolean)
+          : [];
+
+        const paragraphHtml = paragraphs.length > 0
+          ? paragraphs.map((p) => `<p class="chapter-paragraph">　　${escapeHtml(p)}</p>`).join("")
+          : "<p class=\"chapter-paragraph\">　　（本章暂无正文）</p>";
+        const heading = chapterTitle ? `第${escapeHtml(chapterId)}章｜${escapeHtml(chapterTitle)}` : `第${escapeHtml(chapterId)}章`;
+
+        return `
+          <section class="chapter-block">
+            <h3 class="chapter-title"><strong>${heading}</strong></h3>
+            ${paragraphHtml}
+          </section>
+        `;
+      });
+
+      fullTextEl.innerHTML = blocks.join("");
+    }
+
+    function applySnapshot(snapshot) {
+      if (!snapshot) return;
+      titleEl.textContent = snapshot.title || `小说 #${novelId}`;
+      styleEl.textContent = `文风：${snapshot.writing_style || "未设置"}`;
+      introEl.textContent = snapshot.intro || "暂无简介";
+      fullTextEl.textContent = "全文加载中...";
+      characterListEl.innerHTML = "<li class=\"character-item\">人物设定加载中...</li>";
+      setStatus(Boolean(snapshot.is_completed));
+    }
+
+    function loadSnapshotFromIndex() {
+      if (!Number.isFinite(novelId) || novelId <= 0) return null;
+      const key = `novel_snapshot_${novelId}`;
+      const raw = sessionStorage.getItem(key);
+      if (!raw) return null;
+      try {
+        const parsed = JSON.parse(raw);
+        if (!parsed || typeof parsed !== "object") return null;
+        return parsed;
+      } catch (err) {
+        console.error("invalid snapshot", err);
+        return null;
+      }
+    }
+
+    async function loadDetail() {
+      if (!Number.isFinite(novelId) || novelId <= 0) {
+        titleEl.textContent = "参数错误";
+        styleEl.textContent = "文风：--";
+        introEl.textContent = "请从书架进入详情页。";
+        fullTextEl.textContent = "--";
+        setStatus(true);
+        return;
+      }
+
+      const snapshot = loadSnapshotFromIndex();
+      if (snapshot) {
+        applySnapshot(snapshot);
+      }
+
+      try {
+        const resp = await fetch(`/api/novels/${novelId}`);
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        titleEl.textContent = data.title || `小说 #${novelId}`;
+        styleEl.textContent = `文风：${data.writing_style || "未设置"}`;
+        introEl.textContent = data.intro || "暂无简介";
+        renderFullTextByChapters(data.chapters || []);
+        fillChapterSummaries(data.chapters || []);
+        fillCharacters(data.characters || []);
+        setStatus(Boolean(data.is_completed));
+      } catch (error) {
+        console.error(error);
+        titleEl.textContent = "加载失败";
+        styleEl.textContent = "文风：--";
+        introEl.textContent = "未能获取小说详情，请检查接口和数据库。";
+        fullTextEl.textContent = "--";
+        characterListEl.innerHTML = "<li class=\"character-item\">--</li>";
+        setStatus(true);
+      }
+    }
+
+    continueBtn.addEventListener("click", () => {
+      window.location.href = `/continue?novel_id=${encodeURIComponent(novelId)}`;
+    });
+
+    completeBtn.addEventListener("click", () => {
+      confirmOverlay.classList.add("show");
+    });
+
+    exportBtn.addEventListener("click", async () => {
+      if (!Number.isFinite(novelId) || novelId <= 0) {
+        showToast("导出失败：小说ID无效");
+        return;
+      }
+
+      exportBtn.disabled = true;
+      const oldText = exportBtn.textContent;
+      exportBtn.textContent = "导出中...";
+
+      try {
+        const resp = await fetch(`/api/novels/${novelId}/export`, { method: "POST" });
+        if (!resp.ok) {
+          const errData = await resp.json().catch(() => ({}));
+          throw new Error(errData.detail || `HTTP ${resp.status}`);
+        }
+        const data = await resp.json();
+        const txtPath = data?.output_files?.txt || data.output_file || "";
+        const mdPath = data?.output_files?.md || "";
+        if (txtPath && mdPath) {
+          showToast(`导出成功：TXT和MD已保存到 output`);
+        } else {
+          showToast(`导出成功：${txtPath || "已导出"}`);
+        }
+      } catch (error) {
+        console.error(error);
+        showToast(`导出失败：${error.message || error}`);
+      } finally {
+        exportBtn.disabled = false;
+        exportBtn.textContent = oldText;
+      }
+    });
+
+    cancelCompleteBtn.addEventListener("click", () => {
+      confirmOverlay.classList.remove("show");
+    });
+
+    confirmOverlay.addEventListener("click", (event) => {
+      if (event.target === confirmOverlay) {
+        confirmOverlay.classList.remove("show");
+      }
+    });
+
+    confirmCompleteBtn.addEventListener("click", async () => {
+      try {
+        const resp = await fetch(`/api/novels/${novelId}/complete`, { method: "POST" });
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}`);
+        }
+        confirmOverlay.classList.remove("show");
+        setStatus(true);
+        playCelebration();
+        showToast("恭喜你完成了一篇作品创作！");
+      } catch (error) {
+        console.error(error);
+        showToast("完结操作失败，请稍后重试");
+      }
+    });
+
+    loadDetail();
+  </script>
+</body>
+</html>

@@ -1,0 +1,624 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>续写工作台</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+  <style>
+    .write-page { width: min(1180px, 94vw); margin: 0 auto; padding: 28px 0 60px; }
+
+    .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; }
+    .back-link { text-decoration: none; color: var(--accent); border: 1px solid rgba(255,232,199,.3); border-radius: 999px; padding: 8px 12px; background: rgba(255,232,199,.08); }
+    .id-chip { border: 1px solid rgba(255,232,199,.3); border-radius: 999px; padding: 6px 12px; background: rgba(255,232,199,.08); font-size: 13px; }
+
+    .panel { padding: 18px; border-radius: 14px; border: 1px solid rgba(255,236,213,.18); background: rgba(255,255,255,.05); box-shadow: 0 10px 22px rgba(0,0,0,.25); margin-bottom: 14px; }
+    .panel h1, .panel h2 { margin: 0 0 12px; color: var(--accent); }
+
+    .base-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .field { display: grid; gap: 8px; }
+    .field.full { grid-column: 1 / -1; }
+    label { color: var(--text-subtle); font-size: 14px; }
+    input, textarea {
+      width: 100%; border-radius: 10px; border: 1px solid rgba(255,236,213,.25);
+      background: rgba(0,0,0,.18); color: var(--text-main); padding: 10px 12px; font: inherit;
+    }
+    input[type="number"] {
+      appearance: textfield;
+      -moz-appearance: textfield;
+    }
+    input[type="number"]::-webkit-outer-spin-button,
+    input[type="number"]::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+    textarea { min-height: 120px; resize: vertical; }
+    textarea::-webkit-scrollbar { width: 8px; }
+    textarea::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(255,232,199,.28); }
+
+    .row-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .subpanel { border: 1px solid rgba(255,236,213,.16); border-radius: 10px; padding: 12px; background: rgba(255,255,255,.03); }
+
+    .stack-scroll { max-height: 320px; overflow: auto; padding-right: 8px; display: grid; gap: 10px; }
+    .stack-scroll::-webkit-scrollbar { width: 8px; }
+    .stack-scroll::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(255,232,199,.28); }
+
+    .item { border: 1px solid rgba(255,236,213,.14); border-radius: 10px; padding: 10px; background: rgba(0,0,0,.14); display: grid; gap: 8px; }
+    .item-head { font-size: 13px; color: var(--text-subtle); }
+
+    .chapter-block { border: 1px solid rgba(255,236,213,.14); border-radius: 10px; padding: 10px; background: rgba(0,0,0,.14); margin-bottom: 10px; }
+    .chapter-block h3 { margin: 0 0 8px; color: #f5d4a3; font-size: 16px; }
+
+    .btn-row { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn {
+      border: none; border-radius: 10px; padding: 10px 16px; color: #f8efe4; cursor: pointer;
+      transition: transform .16s ease, filter .16s ease; font-size: 14px;
+    }
+    .btn:hover { transform: translateY(-1px); filter: brightness(1.08); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; }
+    .btn-save { background: linear-gradient(35deg, #6a5d30, #9f8740); }
+    .btn-generate { background: linear-gradient(35deg, #1a4f5f, #2e7585); }
+    .btn-confirm { background: linear-gradient(35deg, #496a31, #6f9f41); }
+    .btn-secondary { background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2); }
+
+    .chat-grid { display: grid; gap: 10px; }
+    .chat-input { min-height: 120px; max-height: 260px; overflow: auto; }
+    .chat-input::-webkit-scrollbar { width: 8px; }
+    .chat-input::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(255,232,199,.28); }
+
+    .generated-box { border: 1px solid rgba(255,236,213,.16); border-radius: 10px; padding: 12px; background: rgba(255,255,255,.03); }
+
+    .retrieval { max-height: 240px; overflow: auto; padding-right: 8px; display: grid; gap: 8px; margin-top: 8px; }
+    .retrieval::-webkit-scrollbar { width: 8px; }
+    .retrieval::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(255,232,199,.28); }
+    .retrieval-item { font-size: 13px; color: var(--text-subtle); border: 1px solid rgba(255,236,213,.14); border-radius: 8px; padding: 8px; }
+
+    .status { min-height: 20px; color: var(--text-subtle); margin-top: 8px; }
+
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,.58); display: none;
+      align-items: center; justify-content: center; z-index: 40; padding: 20px;
+    }
+    .overlay.show { display: flex; }
+
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(7, 9, 8, 0.68);
+      backdrop-filter: blur(2px);
+      z-index: 60;
+      padding: 20px;
+    }
+    .loading-overlay.show { display: flex; }
+
+    .loading-card {
+      width: min(420px, 90vw);
+      border-radius: 14px;
+      border: 1px solid rgba(255,236,213,.26);
+      background: linear-gradient(170deg, #262118, #171917);
+      box-shadow: 0 20px 34px rgba(0,0,0,.45);
+      padding: 20px;
+      display: grid;
+      gap: 10px;
+      justify-items: center;
+      text-align: center;
+    }
+
+    .loading-spinner {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 3px solid rgba(255,232,199,.22);
+      border-top-color: #ffd89d;
+      animation: spin 900ms linear infinite;
+    }
+
+    .loading-title { color: var(--accent); font-weight: 600; letter-spacing: .02em; }
+    .loading-subtitle { color: var(--text-subtle); font-size: 14px; line-height: 1.7; }
+
+    .empty-tip {
+      border: 1px dashed rgba(255,236,213,.2);
+      border-radius: 10px;
+      padding: 12px;
+      color: var(--text-subtle);
+      background: rgba(0,0,0,.14);
+      font-size: 14px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    .modal { width: min(520px,94vw); border-radius: 14px; border: 1px solid rgba(255,236,213,.22); background: linear-gradient(170deg, #252019, #171917); box-shadow: 0 20px 34px rgba(0,0,0,.45); padding: 20px; }
+    .modal h3 { margin: 0 0 8px; color: var(--accent); }
+    .modal p { margin: 0; color: var(--text-subtle); line-height: 1.7; }
+    .modal-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+
+    .confetti-layer { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 35; }
+    .confetti { position: absolute; top: -12px; width: 10px; height: 16px; opacity: .95; animation: confetti-fall 2600ms linear forwards; }
+    @keyframes confetti-fall { to { transform: translateY(110vh) rotate(620deg); opacity: .2; } }
+
+    .toast {
+      position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+      background: rgba(20,22,20,.9); padding: 10px 14px; border-radius: 8px;
+      border: 1px solid rgba(255,232,199,.28); display: none; z-index: 50;
+    }
+    .toast.show { display: block; }
+
+    @media (max-width: 940px) {
+      .base-grid, .row-split { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="write-page">
+    <div class="topbar">
+      <a class="back-link" href="/">返回书架</a>
+      <span id="id-chip" class="id-chip">小说ID：--</span>
+    </div>
+
+    <section class="panel">
+      <h1>续写工作台</h1>
+      <div class="base-grid">
+        <div class="field">
+          <label for="title">标题</label>
+          <input id="title" />
+        </div>
+        <div class="field">
+          <label for="style">文风</label>
+          <input id="style" />
+        </div>
+        <div class="field full">
+          <label for="intro">文章简介</label>
+          <textarea id="intro"></textarea>
+        </div>
+      </div>
+
+      <div class="row-split">
+        <div class="subpanel">
+          <label>章节摘要（可编辑）</label>
+          <div id="summary-list" class="stack-scroll"></div>
+        </div>
+        <div class="subpanel">
+          <label>人物设定（可编辑）</label>
+          <div id="character-list" class="stack-scroll"></div>
+        </div>
+      </div>
+
+      <div class="subpanel" style="margin-top: 12px;">
+        <label>每章全文（可编辑）</label>
+        <div id="chapter-fulltext-list" class="stack-scroll"></div>
+      </div>
+
+      <div class="btn-row" style="margin-top: 12px;">
+        <button id="save-edit-btn" class="btn btn-save" type="button">保存当前修改</button>
+      </div>
+      <div id="base-status" class="status"></div>
+    </section>
+
+    <section class="panel">
+      <h2>续写生成</h2>
+      <div class="chat-grid">
+        <div class="field">
+          <label for="chat-requirement">作者输入要求</label>
+          <textarea id="chat-requirement" class="chat-input" placeholder="例如：请在新章节安排主角与反派首次正面交锋，并在结尾埋下议会线索。"></textarea>
+        </div>
+        <div class="btn-row">
+          <button id="generate-chapter-btn" class="btn btn-generate" type="button">生成新章节草稿</button>
+        </div>
+      </div>
+
+      <div class="generated-box" style="margin-top: 12px;">
+        <div class="field">
+          <label for="generated-title">新章节标题</label>
+          <input id="generated-title" />
+        </div>
+        <div class="base-grid" style="margin-top: 10px;">
+          <div class="field">
+            <label for="generated-id">章节ID</label>
+            <input id="generated-id" type="number" />
+          </div>
+          <div class="field">
+            <label for="generated-wordcount">字数</label>
+            <input id="generated-wordcount" type="number" />
+          </div>
+        </div>
+        <div class="field" style="margin-top: 10px;">
+          <label for="generated-summary">章节摘要</label>
+          <textarea id="generated-summary"></textarea>
+        </div>
+        <div class="field" style="margin-top: 10px;">
+          <label for="generated-content">新章节正文（可微调）</label>
+          <textarea id="generated-content" style="min-height: 220px;"></textarea>
+        </div>
+
+        <div class="btn-row" style="margin-top: 10px;">
+          <button id="confirm-save-chapter-btn" class="btn btn-confirm" type="button" disabled>确认保存新章节</button>
+        </div>
+
+        <div style="margin-top: 12px;">
+          <label>RAG混合检索命中（占位）</label>
+          <div id="retrieval-box" class="retrieval"></div>
+        </div>
+      </div>
+      <div id="gen-status" class="status"></div>
+    </section>
+  </main>
+
+  <div id="generating-overlay" class="loading-overlay" aria-live="polite" aria-busy="true">
+    <div class="loading-card">
+      <span class="loading-spinner" aria-hidden="true"></span>
+      <div class="loading-title">智能体正在续写中...</div>
+      <div class="loading-subtitle">正在执行混合检索并生成新章节，请稍候。</div>
+    </div>
+  </div>
+
+  <div id="confirm-overlay" class="overlay" role="dialog" aria-modal="true" aria-labelledby="confirm-title">
+    <div class="modal">
+      <h3 id="confirm-title">确认保存新章节？</h3>
+      <p>确认后将把该章节写入数据库，并返回到详情页展示。</p>
+      <div class="modal-actions">
+        <button id="cancel-confirm-btn" class="btn btn-secondary" type="button">再修改一下</button>
+        <button id="do-confirm-btn" class="btn btn-confirm" type="button">确认保存</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="confetti-layer" class="confetti-layer"></div>
+  <div id="toast" class="toast"></div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const novelId = Number(params.get("novel_id"));
+
+    const idChip = document.getElementById("id-chip");
+    const titleInput = document.getElementById("title");
+    const styleInput = document.getElementById("style");
+    const introInput = document.getElementById("intro");
+
+    const summaryList = document.getElementById("summary-list");
+    const characterList = document.getElementById("character-list");
+    const chapterFulltextList = document.getElementById("chapter-fulltext-list");
+
+    const saveEditBtn = document.getElementById("save-edit-btn");
+    const baseStatus = document.getElementById("base-status");
+
+    const requirementInput = document.getElementById("chat-requirement");
+    const generateBtn = document.getElementById("generate-chapter-btn");
+    const genStatus = document.getElementById("gen-status");
+
+    const generatedTitle = document.getElementById("generated-title");
+    const generatedId = document.getElementById("generated-id");
+    const generatedWordCount = document.getElementById("generated-wordcount");
+    const generatedSummary = document.getElementById("generated-summary");
+    const generatedContent = document.getElementById("generated-content");
+    const confirmSaveChapterBtn = document.getElementById("confirm-save-chapter-btn");
+
+    const retrievalBox = document.getElementById("retrieval-box");
+
+    const overlay = document.getElementById("confirm-overlay");
+    const cancelConfirmBtn = document.getElementById("cancel-confirm-btn");
+    const doConfirmBtn = document.getElementById("do-confirm-btn");
+
+    const confettiLayer = document.getElementById("confetti-layer");
+    const toast = document.getElementById("toast");
+    const generatingOverlay = document.getElementById("generating-overlay");
+
+    let currentData = null;
+
+    function showStatus(el, text, isError = false) {
+      el.textContent = text;
+      el.style.color = isError ? "#ff9f9f" : "var(--text-subtle)";
+    }
+
+    function showToast(text) {
+      toast.textContent = text;
+      toast.classList.add("show");
+      window.setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+
+    function showGeneratingOverlay() {
+      generatingOverlay.classList.add("show");
+    }
+
+    function hideGeneratingOverlay() {
+      generatingOverlay.classList.remove("show");
+    }
+
+    function playCelebration() {
+      const colors = ["#ffd18a", "#9be7d8", "#ff8f7f", "#d6ff9a", "#fff2a8"];
+      for (let i = 0; i < 88; i += 1) {
+        const c = document.createElement("span");
+        c.className = "confetti";
+        c.style.left = `${Math.random() * 100}%`;
+        c.style.background = colors[Math.floor(Math.random() * colors.length)];
+        c.style.animationDuration = `${2100 + Math.random() * 1200}ms`;
+        c.style.animationDelay = `${Math.random() * 280}ms`;
+        confettiLayer.appendChild(c);
+        window.setTimeout(() => c.remove(), 3600);
+      }
+    }
+
+    function renderSummaries(chapters) {
+      summaryList.innerHTML = "";
+      (chapters || []).forEach((ch, idx) => {
+        const chapterTitle = ch.chapter_title || ch.title || "";
+        const item = document.createElement("div");
+        item.className = "item";
+        item.innerHTML = `
+          <div class="item-head">第 ${ch.chapter_id || idx + 1} 章</div>
+          <input data-kind="chapter_title" data-index="${idx}" value="${chapterTitle.replace(/"/g, "&quot;")}" placeholder="章节标题" />
+          <textarea data-kind="chapter_summary" data-index="${idx}">${ch.chapter_summary || ""}</textarea>
+        `;
+        summaryList.appendChild(item);
+      });
+    }
+
+    function renderCharacters(chars) {
+      characterList.innerHTML = "";
+      (chars || []).forEach((c, idx) => appendCharacterItem(c, idx + 1));
+      if ((chars || []).length === 0) {
+        appendCharacterItem({ character_name: "", profile_detail: "" }, 1);
+      }
+    }
+
+    function appendCharacterItem(charData, orderNo) {
+      const item = document.createElement("div");
+      item.className = "item";
+      item.innerHTML = `
+        <div class="item-head">角色 ${orderNo}</div>
+        <input data-kind="character_name" value="${(charData.character_name || "").replace(/"/g, "&quot;")}" placeholder="角色名" />
+        <textarea data-kind="profile_detail" placeholder="人物设定">${charData.profile_detail || ""}</textarea>
+      `;
+      characterList.appendChild(item);
+    }
+
+    function renderFulltexts(chapters) {
+      chapterFulltextList.innerHTML = "";
+      const fulltextChapters = (chapters || []).filter((ch) => {
+        const text = typeof ch.chapter_full_text === "string" ? ch.chapter_full_text.trim() : "";
+        return text.length > 0;
+      });
+
+      if (fulltextChapters.length === 0) {
+        chapterFulltextList.innerHTML = '<div class="empty-tip">暂无已创作正文章节</div>';
+        return;
+      }
+
+      fulltextChapters.forEach((ch, idx) => {
+        const chapterTitle = ch.chapter_title || ch.title || "";
+        const heading = chapterTitle ? `第 ${ch.chapter_id || idx + 1} 章｜${chapterTitle}` : `第 ${ch.chapter_id || idx + 1} 章`;
+        const item = document.createElement("div");
+        item.className = "chapter-block";
+        item.innerHTML = `
+          <h3>${heading}</h3>
+          <textarea data-kind="chapter_full_text" data-chapter-id="${ch.chapter_id || idx + 1}" style="min-height: 170px;">${ch.chapter_full_text || ""}</textarea>
+        `;
+        chapterFulltextList.appendChild(item);
+      });
+    }
+
+    function renderRetrieval(retrieval) {
+      retrievalBox.innerHTML = "";
+      const summaryHits = (retrieval && retrieval.summary_hits) || [];
+      const chunkHits = (retrieval && retrieval.chunk_hits) || [];
+
+      if (summaryHits.length === 0 && chunkHits.length === 0) {
+        retrievalBox.innerHTML = '<div class="retrieval-item">暂无命中</div>';
+        return;
+      }
+
+      summaryHits.forEach((h, idx) => {
+        const div = document.createElement("div");
+        div.className = "retrieval-item";
+        div.textContent = `摘要命中${idx + 1} | 章${h.chapter_id} | ${h.summary || ""}`;
+        retrievalBox.appendChild(div);
+      });
+
+      chunkHits.forEach((h, idx) => {
+        const div = document.createElement("div");
+        div.className = "retrieval-item";
+        div.textContent = `正文块命中${idx + 1} | 章${h.chapter_id} | ${h.text || ""}`;
+        retrievalBox.appendChild(div);
+      });
+    }
+
+    function collectEditablePayload() {
+      const chapters = (currentData?.chapters || []).map((ch, idx) => {
+        const titleEl = summaryList.querySelector(`[data-kind="chapter_title"][data-index="${idx}"]`);
+        const summaryEl = summaryList.querySelector(`[data-kind="chapter_summary"][data-index="${idx}"]`);
+        const fullTextEl = chapterFulltextList.querySelector(`[data-kind="chapter_full_text"][data-chapter-id="${ch.chapter_id || idx + 1}"]`);
+        const fullText = fullTextEl ? fullTextEl.value.trim() : "";
+        return {
+          chapter_id: ch.chapter_id || idx + 1,
+          chapter_title: titleEl ? titleEl.value.trim() : (ch.chapter_title || ch.title || ""),
+          title: titleEl ? titleEl.value.trim() : (ch.chapter_title || ch.title || ""),
+          chapter_summary: summaryEl ? summaryEl.value.trim() : (ch.chapter_summary || ""),
+          chapter_full_text: fullText,
+          word_count: fullText.replace(/\s+/g, "").length,
+        };
+      });
+
+      const characterItems = Array.from(characterList.querySelectorAll(".item"));
+      const characters = characterItems.map((item, idx) => {
+        const nameEl = item.querySelector('[data-kind="character_name"]');
+        const profileEl = item.querySelector('[data-kind="profile_detail"]');
+        return {
+          character_id: idx + 1,
+          character_name: nameEl ? nameEl.value.trim() : "",
+          profile_detail: profileEl ? profileEl.value.trim() : "",
+        };
+      });
+
+      return {
+        title: titleInput.value.trim(),
+        writing_style: styleInput.value.trim(),
+        intro: introInput.value.trim(),
+        chapters,
+        characters,
+      };
+    }
+
+    async function loadData() {
+      if (!Number.isFinite(novelId) || novelId <= 0) {
+        showStatus(baseStatus, "参数错误：请从详情页进入续写。", true);
+        return;
+      }
+
+      idChip.textContent = `小说ID：${novelId}`;
+      try {
+        const resp = await fetch(`/api/novels/${novelId}`);
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+        currentData = data;
+
+        titleInput.value = data.title || "";
+        styleInput.value = data.writing_style || "";
+        introInput.value = data.intro || "";
+
+        renderSummaries(data.chapters || []);
+        renderCharacters(data.characters || []);
+        renderFulltexts(data.chapters || []);
+        showStatus(baseStatus, "数据加载完成，可修改后保存。", false);
+      } catch (err) {
+        console.error(err);
+        showStatus(baseStatus, "加载失败，请检查接口或数据库。", true);
+      }
+    }
+
+    async function saveEdits() {
+      if (!currentData) return;
+      const payload = collectEditablePayload();
+      if (!payload.title || !payload.writing_style) {
+        showStatus(baseStatus, "标题和文风不能为空。", true);
+        return;
+      }
+
+      saveEditBtn.disabled = true;
+      try {
+        const resp = await fetch(`/api/novels/${novelId}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${resp.status}`);
+        }
+        showStatus(baseStatus, "修改已保存到数据库。", false);
+        currentData = { ...currentData, ...payload };
+      } catch (err) {
+        console.error(err);
+        showStatus(baseStatus, `保存失败：${err.message || err}`, true);
+      } finally {
+        saveEditBtn.disabled = false;
+      }
+    }
+
+    async function generateChapterDraft() {
+      const requirement = requirementInput.value.trim();
+      if (!requirement) {
+        showStatus(genStatus, "请先输入续写要求。", true);
+        return;
+      }
+
+      const edited = collectEditablePayload();
+      generateBtn.disabled = true;
+      showStatus(genStatus, "占位Agent正在生成新章节，并执行混合检索...", false);
+      showGeneratingOverlay();
+      try {
+        const resp = await fetch(`/api/novels/${novelId}/continue-draft`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            requirement,
+            title: edited.title,
+            writing_style: edited.writing_style,
+            intro: edited.intro,
+            characters: edited.characters,
+          }),
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${resp.status}`);
+        }
+        const data = await resp.json();
+        const d = data.chapter_draft || {};
+
+        generatedTitle.value = d.title || "";
+        generatedId.value = d.chapter_id || "";
+        generatedWordCount.value = d.word_count || 0;
+        generatedSummary.value = d.chapter_summary || "";
+        generatedContent.value = d.chapter_full_text || "";
+        renderRetrieval(data.retrieval || {});
+
+        confirmSaveChapterBtn.disabled = false;
+        showStatus(genStatus, "新章节草稿已生成，可微调后确认保存。", false);
+      } catch (err) {
+        console.error(err);
+        showStatus(genStatus, `生成失败：${err.message || err}`, true);
+      } finally {
+        generateBtn.disabled = false;
+        hideGeneratingOverlay();
+      }
+    }
+
+    async function confirmSaveChapter() {
+      const chapterTitle = generatedTitle.value.trim();
+      const payload = {
+        chapter_id: Number(generatedId.value),
+        chapter_title: chapterTitle,
+        title: chapterTitle,
+        chapter_summary: generatedSummary.value.trim(),
+        chapter_full_text: generatedContent.value.trim(),
+        word_count: Number(generatedWordCount.value || 0),
+      };
+
+      if (!payload.chapter_id || !payload.chapter_title || !payload.chapter_summary) {
+        showStatus(genStatus, "章节ID、章节标题和章节摘要不能为空。", true);
+        return;
+      }
+
+      doConfirmBtn.disabled = true;
+      try {
+        const resp = await fetch(`/api/novels/${novelId}/chapters`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.detail || `HTTP ${resp.status}`);
+        }
+
+        overlay.classList.remove("show");
+        playCelebration();
+        showToast("新章节已保存，正在返回详情页。");
+        showStatus(genStatus, "保存成功。", false);
+        window.setTimeout(() => {
+          window.location.href = `/detail/${encodeURIComponent(novelId)}`;
+        }, 900);
+      } catch (err) {
+        console.error(err);
+        showStatus(genStatus, `保存失败：${err.message || err}`, true);
+      } finally {
+        doConfirmBtn.disabled = false;
+      }
+    }
+
+    saveEditBtn.addEventListener("click", saveEdits);
+    generateBtn.addEventListener("click", generateChapterDraft);
+
+    confirmSaveChapterBtn.addEventListener("click", () => {
+      overlay.classList.add("show");
+    });
+    cancelConfirmBtn.addEventListener("click", () => overlay.classList.remove("show"));
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.remove("show"); });
+    doConfirmBtn.addEventListener("click", confirmSaveChapter);
+
+    loadData();
+  </script>
+</body>
+</html>

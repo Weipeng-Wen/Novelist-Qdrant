@@ -1,0 +1,148 @@
+﻿<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Novelist Agent | 作品书架</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="shelf-page">
+    <header class="hero">
+      <p class="hero-kicker">NOVELIST AGENT</p>
+      <h1>我的创作书架</h1>
+      <p class="hero-subtitle">点击已有封面进入详情，点击最后一本开始新作品创作。</p>
+    </header>
+
+    <section class="bookshelf" aria-label="小说书架">
+      <div class="shelf-board top"></div>
+
+      <div class="book-grid" id="book-grid">
+        <article class="cover cover-1" style="grid-column: 1 / -1; text-align: center;">
+          <h2>正在加载书架...</h2>
+          <p>请稍候</p>
+        </article>
+      </div>
+
+      <div class="shelf-board middle"></div>
+      <div class="shelf-shadow"></div>
+    </section>
+  </main>
+
+  <script>
+    function escapeHtml(text) {
+      return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    function truncate(text, maxLen) {
+      if (!text) return "";
+      const t = String(text).trim();
+      return t.length > maxLen ? t.slice(0, maxLen) + "..." : t;
+    }
+
+    function renderCreateCard() {
+      return `
+        <a class="book-card" href="/create" aria-label="进入新作品创作页面">
+          <article class="cover cover-new">
+            <span class="book-tag new">新建作品</span>
+            <div class="plus">+</div>
+            <h2>开始创作</h2>
+            <p>从灵感到章节大纲</p>
+          </article>
+        </a>
+      `;
+    }
+
+    function renderNovelCard(novel, index) {
+      const coverClass = `cover-${(index % 3) + 1}`;
+      const statusTag = novel.is_completed ? "已完结" : "连载中";
+      const style = truncate(novel.writing_style || "未设置文风", 18);
+      const subtitle = truncate(novel.chapter_intro || "暂无章节大纲", 26);
+      const title = novel.title || `小说 #${novel.novel_id}`;
+      const rawStyle = novel.writing_style || "未设置文风";
+      const rawIntro = novel.chapter_intro || "暂无简介";
+
+      return `
+        <a
+          class="book-card"
+          href="/detail/${encodeURIComponent(novel.novel_id)}"
+          data-novel-id="${encodeURIComponent(novel.novel_id)}"
+          data-title="${escapeHtml(title)}"
+          data-style="${escapeHtml(rawStyle)}"
+          data-intro="${escapeHtml(rawIntro)}"
+          data-completed="${novel.is_completed ? "1" : "0"}"
+          aria-label="进入《${escapeHtml(title)}》详情页面"
+        >
+          <article class="cover ${coverClass}">
+            <span class="book-tag">${escapeHtml(statusTag)}</span>
+            <h2>《${escapeHtml(title)}》</h2>
+            <p>${escapeHtml(style)}</p>
+            <p>${escapeHtml(subtitle)}</p>
+          </article>
+        </a>
+      `;
+    }
+
+    async function loadBookshelf() {
+      const grid = document.getElementById("book-grid");
+      try {
+        const resp = await fetch("/api/novels", { method: "GET" });
+        if (!resp.ok) {
+          throw new Error(`HTTP ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        const novels = Array.isArray(data.novels) ? data.novels : [];
+
+        const novelCards = novels.map((n, i) => renderNovelCard(n, i)).join("");
+        const emptyCard = novels.length === 0
+          ? `
+            <article class="cover cover-2" style="grid-column: 1 / -1; text-align: center;">
+              <h2>书架还没有作品</h2>
+              <p>先点击“开始创作”创建第一本小说</p>
+            </article>
+          `
+          : "";
+
+        grid.innerHTML = `${emptyCard}${novelCards}${renderCreateCard()}`;
+        bindNovelSnapshotStorage();
+      } catch (error) {
+        grid.innerHTML = `
+          <article class="cover cover-3" style="grid-column: 1 / -1; text-align: center;">
+            <h2>书架加载失败</h2>
+            <p>请检查数据库或接口状态后重试</p>
+          </article>
+          ${renderCreateCard()}
+        `;
+        console.error("Failed to load novels:", error);
+      }
+    }
+
+    function bindNovelSnapshotStorage() {
+      const cards = document.querySelectorAll(".book-card[data-novel-id]");
+      cards.forEach((card) => {
+        card.addEventListener("click", () => {
+          const novelId = card.getAttribute("data-novel-id");
+          if (!novelId) return;
+          const snapshot = {
+            novel_id: Number(novelId),
+            title: card.getAttribute("data-title") || "",
+            writing_style: card.getAttribute("data-style") || "",
+            intro: card.getAttribute("data-intro") || "",
+            is_completed: card.getAttribute("data-completed") === "1",
+            ts: Date.now(),
+          };
+          sessionStorage.setItem(`novel_snapshot_${novelId}`, JSON.stringify(snapshot));
+        });
+      });
+    }
+
+    loadBookshelf();
+  </script>
+</body>
+</html>
